@@ -56,6 +56,7 @@ import { USER_AGENT } from "./version.js";
 import { SessionStore, getSessionId, type SessionConfig } from "./session.js";
 import { checkForUpdates } from "./updater.js";
 import { PROXY_PORT } from "./config.js";
+import { SessionJournal } from "./journal.js";
 
 const BLOCKRUN_API = "https://blockrun.ai/api";
 // Routing profile models - virtual models that trigger intelligent routing
@@ -837,6 +838,9 @@ export async function startProxy(options: ProxyOptions): Promise<ProxyHandle> {
   // Session store for model persistence (prevents mid-task model switching)
   const sessionStore = new SessionStore(options.sessionConfig);
 
+  // Session journal for memory (enables agents to recall earlier work)
+  const sessionJournal = new SessionJournal();
+
   // Track active connections for graceful cleanup
   const connections = new Set<import("net").Socket>();
 
@@ -960,6 +964,7 @@ export async function startProxy(options: ProxyOptions): Promise<ProxyHandle> {
         balanceMonitor,
         sessionStore,
         responseCache,
+        sessionJournal,
       );
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
@@ -1287,6 +1292,7 @@ async function proxyRequest(
   balanceMonitor: BalanceMonitor,
   sessionStore: SessionStore,
   responseCache: ResponseCache,
+  sessionJournal: SessionJournal,
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -1306,7 +1312,11 @@ async function proxyRequest(
   let modelId = "";
   let maxTokens = 4096;
   let routingProfile: "free" | "eco" | "auto" | "premium" | null = null;
+  let accumulatedContent = ""; // For session journal event extraction
   const isChatCompletion = req.url?.includes("/chat/completions");
+
+  // Extract session ID early for journal operations
+  const sessionId = getSessionId(req.headers as Record<string, string | string[] | undefined>);
 
   if (isChatCompletion && body.length > 0) {
     try {
@@ -1314,10 +1324,39 @@ async function proxyRequest(
       isStreaming = parsed.stream === true;
       modelId = (parsed.model as string) || "";
       maxTokens = (parsed.max_tokens as number) || 4096;
+      let bodyModified = false;
+
+      // --- Session Journal: Inject context if needed ---
+      // Check if the last user message asks about past work
+      if (sessionId && Array.isArray(parsed.messages)) {
+        const messages = parsed.messages as Array<{ role: string; content: unknown }>;
+        const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+        const lastContent = typeof lastUserMsg?.content === "string" ? lastUserMsg.content : "";
+
+        if (sessionJournal.needsContext(lastContent)) {
+          const journalText = sessionJournal.format(sessionId);
+          if (journalText) {
+            // Find system message and prepend journal, or add a new system message
+            const sysIdx = messages.findIndex((m) => m.role === "system");
+            if (sysIdx >= 0 && typeof messages[sysIdx].content === "string") {
+              messages[sysIdx] = {
+                ...messages[sysIdx],
+                content: journalText + "\n\n" + messages[sysIdx].content,
+              };
+            } else {
+              messages.unshift({ role: "system", content: journalText });
+            }
+            parsed.messages = messages;
+            bodyModified = true;
+            console.log(
+              `[ClawRouter] Injected session journal (${journalText.length} chars) for session ${sessionId.slice(0, 8)}...`,
+            );
+          }
+        }
+      }
 
       // Force stream: false — BlockRun API doesn't support streaming yet
       // ClawRouter handles SSE heartbeat simulation for upstream compatibility
-      let bodyModified = false;
       if (parsed.stream === true) {
         parsed.stream = false;
         bodyModified = true;
@@ -1924,6 +1963,11 @@ async function proxyRequest(
               const role = choice.message?.role ?? choice.delta?.role ?? "assistant";
               const index = choice.index ?? 0;
 
+              // Accumulate content for session journal
+              if (content) {
+                accumulatedContent += content;
+              }
+
               // Chunk 1: role only (mimics OpenAI's first chunk)
               const roleChunk = {
                 ...baseChunk,
@@ -2051,6 +2095,29 @@ async function proxyRequest(
           model: modelId,
         });
         console.log(`[ClawRouter] Cached response for ${modelId} (${responseBody.length} bytes)`);
+      }
+
+      // Extract content from non-streaming response for session journal
+      try {
+        const rspJson = JSON.parse(responseBody.toString()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        if (rspJson.choices?.[0]?.message?.content) {
+          accumulatedContent = rspJson.choices[0].message.content;
+        }
+      } catch {
+        // Ignore parse errors - journal just won't have content for this response
+      }
+    }
+
+    // --- Session Journal: Extract and record events from response ---
+    if (sessionId && accumulatedContent) {
+      const events = sessionJournal.extractEvents(accumulatedContent);
+      if (events.length > 0) {
+        sessionJournal.record(sessionId, events, actualModelUsed);
+        console.log(
+          `[ClawRouter] Recorded ${events.length} events to session journal for session ${sessionId.slice(0, 8)}...`,
+        );
       }
     }
 
