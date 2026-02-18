@@ -32,6 +32,10 @@ export const MODEL_ALIASES: Record<string, string> = {
   "anthropic/claude-opus-4.6": "anthropic/claude-opus-4-6",
   "anthropic/claude-opus-4.5": "anthropic/claude-opus-4-5",
   "anthropic/claude-haiku-4.5": "anthropic/claude-haiku-4-5",
+  // Base model names without version -> route to latest
+  "anthropic/claude-sonnet-4": "anthropic/claude-sonnet-4-6",
+  "anthropic/claude-opus-4": "anthropic/claude-opus-4-6",
+  "anthropic/claude-haiku-4": "anthropic/claude-haiku-4-5",
 
   // OpenAI
   gpt: "openai/gpt-4o",
