@@ -39,6 +39,7 @@ import {
 } from "./router/index.js";
 import {
   BLOCKRUN_MODELS,
+  OPENCLAW_MODELS,
   resolveModelAlias,
   getModelContextWindow,
   isReasoningModel,
@@ -845,6 +846,31 @@ function buildModelPricing(): Map<string, ModelPricing> {
   return map;
 }
 
+type ModelListEntry = {
+  id: string;
+  object: "model";
+  created: number;
+  owned_by: string;
+};
+
+/**
+ * Build `/v1/models` response entries from the full OpenClaw model registry.
+ * This includes alias IDs (e.g., `flash`, `kimi`) so `/model <alias>` works reliably.
+ */
+export function buildProxyModelList(createdAt: number = Math.floor(Date.now() / 1000)): ModelListEntry[] {
+  const seen = new Set<string>();
+  return OPENCLAW_MODELS.filter((model) => {
+    if (seen.has(model.id)) return false;
+    seen.add(model.id);
+    return true;
+  }).map((model) => ({
+    id: model.id,
+    object: "model",
+    created: createdAt,
+    owned_by: model.id.includes("/") ? (model.id.split("/")[0] ?? "blockrun") : "blockrun",
+  }));
+}
+
 /**
  * Merge partial routing config overrides with defaults.
  */
@@ -1048,12 +1074,7 @@ export async function startProxy(options: ProxyOptions): Promise<ProxyHandle> {
 
     // --- Handle /v1/models locally (no upstream call needed) ---
     if (req.url === "/v1/models" && req.method === "GET") {
-      const models = BLOCKRUN_MODELS.filter((m) => m.id !== "blockrun/auto").map((m) => ({
-        id: m.id,
-        object: "model",
-        created: Math.floor(Date.now() / 1000),
-        owned_by: m.id.split("/")[0] || "unknown",
-      }));
+      const models = buildProxyModelList();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ object: "list", data: models }));
       return;

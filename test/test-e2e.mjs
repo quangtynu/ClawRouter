@@ -9,7 +9,7 @@
  */
 
 import { createServer } from "node:http";
-import { startProxy } from "./dist/index.js";
+import { startProxy } from "../dist/index.js";
 
 // Test wallet key (for testing only - no real funds)
 const TEST_WALLET_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -101,6 +101,14 @@ const TEST_CASES = [
 
 let currentTestIndex = 0;
 
+function getListeningPort(server) {
+  const addr = server.address();
+  if (!addr || typeof addr === "string") {
+    throw new Error("Failed to resolve listening port");
+  }
+  return addr.port;
+}
+
 async function runTests() {
   console.log("=== ClawRouter E2E Test: Thinking Token Stripping ===\n");
 
@@ -112,16 +120,17 @@ async function runTests() {
     res.end(JSON.stringify(mockResponse));
   });
 
-  await new Promise((resolve) => mockServer.listen(18402, "127.0.0.1", resolve));
-  console.log("✓ Mock BlockRun API started on port 18402");
+  await new Promise((resolve) => mockServer.listen(0, "127.0.0.1", resolve));
+  const mockPort = getListeningPort(mockServer);
+  console.log(`✓ Mock BlockRun API started on port ${mockPort}`);
 
   // 2. Start ClawRouter proxy pointing to mock server
   let proxy;
   try {
     proxy = await startProxy({
       walletKey: TEST_WALLET_KEY,
-      apiBase: "http://127.0.0.1:18402",
-      port: 18403,
+      apiBase: `http://127.0.0.1:${mockPort}`,
+      port: 0,
       onReady: (port) => console.log(`✓ ClawRouter proxy started on port ${port}`),
     });
   } catch (err) {
@@ -142,7 +151,7 @@ async function runTests() {
     try {
       // Send request through proxy (streaming mode to test SSE conversion)
       // Use unique message content to avoid dedup cache
-      const response = await fetch("http://127.0.0.1:18403/v1/chat/completions", {
+      const response = await fetch(`${proxy.baseUrl}/v1/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

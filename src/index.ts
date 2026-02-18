@@ -259,7 +259,7 @@ function injectModelsConfig(logger: { info: (msg: string) => void }): void {
     { id: "eco", alias: "eco" },
     { id: "premium", alias: "premium" },
     { id: "free", alias: "free" },
-    { id: "sonnet", alias: "sonnet" },
+    { id: "sonnet", alias: "sonnet-4.6" },
     { id: "opus", alias: "opus" },
     { id: "haiku", alias: "haiku" },
     { id: "gpt5", alias: "gpt5" },

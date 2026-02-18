@@ -14,4 +14,9 @@ describe("resolveModelAlias", () => {
     expect(resolveModelAlias("blockrun/anthropic/claude-sonnet-4.6")).toBe("claude-sonnet-4");
     expect(resolveModelAlias("blockrun/anthropic/claude-opus-4.6")).toBe("claude-opus-4");
   });
+
+  it("accepts versioned Sonnet shorthand aliases", () => {
+    expect(resolveModelAlias("sonnet-4.6")).toBe("claude-sonnet-4");
+    expect(resolveModelAlias("blockrun/sonnet-4.6")).toBe("claude-sonnet-4");
+  });
 });

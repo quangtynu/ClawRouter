@@ -18,6 +18,8 @@ export const MODEL_ALIASES: Record<string, string> = {
   // Claude - short names (backend uses bare model names without anthropic/ prefix)
   claude: "claude-sonnet-4",
   sonnet: "claude-sonnet-4",
+  "sonnet-4.6": "claude-sonnet-4",
+  "sonnet-4-6": "claude-sonnet-4",
   opus: "claude-opus-4",
   "opus-4": "claude-opus-4",
   haiku: "claude-haiku-4.5",
@@ -282,7 +284,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
   },
   {
     id: "claude-sonnet-4",
-    name: "Claude Sonnet 4",
+    name: "Claude Sonnet 4.6",
     inputPrice: 3.0,
     outputPrice: 15.0,
     contextWindow: 200000,
@@ -292,7 +294,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
   },
   {
     id: "claude-opus-4",
-    name: "Claude Opus 4",
+    name: "Claude Opus 4.6",
     inputPrice: 15.0,
     outputPrice: 75.0,
     contextWindow: 200000,
