@@ -269,6 +269,7 @@ function injectModelsConfig(logger: { info: (msg: string) => void }): void {
     { id: "deepseek", alias: "deepseek" },
     { id: "reasoner", alias: "reasoner" },
     { id: "kimi", alias: "kimi" },
+    { id: "minimax", alias: "minimax" },
     { id: "gemini", alias: "gemini" },
     { id: "flash", alias: "flash" },
   ];
