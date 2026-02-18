@@ -15,18 +15,23 @@ import type { ModelDefinitionConfig, ModelProviderConfig } from "./types.js";
  * Users can type `/model claude` instead of `/model blockrun/anthropic/claude-sonnet-4.6`.
  */
 export const MODEL_ALIASES: Record<string, string> = {
-  // Claude - short names
-  claude: "anthropic/claude-sonnet-4.6",
-  sonnet: "anthropic/claude-sonnet-4.6",
-  opus: "anthropic/claude-opus-4.6", // Updated to latest Opus 4.6
-  "opus-46": "anthropic/claude-opus-4.6",
-  "opus-45": "anthropic/claude-opus-4.5",
-  haiku: "anthropic/claude-haiku-4.5",
+  // Claude - short names (use dashes in version, not dots - Anthropic API format)
+  claude: "anthropic/claude-sonnet-4-6",
+  sonnet: "anthropic/claude-sonnet-4-6",
+  opus: "anthropic/claude-opus-4-6",
+  "opus-46": "anthropic/claude-opus-4-6",
+  "opus-45": "anthropic/claude-opus-4-5",
+  haiku: "anthropic/claude-haiku-4-5",
   // Claude - provider/shortname patterns (common in agent frameworks)
-  "anthropic/sonnet": "anthropic/claude-sonnet-4.6",
-  "anthropic/opus": "anthropic/claude-opus-4.6",
-  "anthropic/haiku": "anthropic/claude-haiku-4.5",
-  "anthropic/claude": "anthropic/claude-sonnet-4.6",
+  "anthropic/sonnet": "anthropic/claude-sonnet-4-6",
+  "anthropic/opus": "anthropic/claude-opus-4-6",
+  "anthropic/haiku": "anthropic/claude-haiku-4-5",
+  "anthropic/claude": "anthropic/claude-sonnet-4-6",
+  // Backward compatibility - old dot notation still works
+  "anthropic/claude-sonnet-4.6": "anthropic/claude-sonnet-4-6",
+  "anthropic/claude-opus-4.6": "anthropic/claude-opus-4-6",
+  "anthropic/claude-opus-4.5": "anthropic/claude-opus-4-5",
+  "anthropic/claude-haiku-4.5": "anthropic/claude-haiku-4-5",
 
   // OpenAI
   gpt: "openai/gpt-4o",
@@ -258,7 +263,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
 
   // Anthropic - all Claude models excel at agentic workflows
   {
-    id: "anthropic/claude-haiku-4.5",
+    id: "anthropic/claude-haiku-4-5",
     name: "Claude Haiku 4.5",
     inputPrice: 1.0,
     outputPrice: 5.0,
@@ -267,7 +272,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
     agentic: true,
   },
   {
-    id: "anthropic/claude-sonnet-4.6",
+    id: "anthropic/claude-sonnet-4-6",
     name: "Claude Sonnet 4.6",
     inputPrice: 3.0,
     outputPrice: 15.0,
@@ -287,7 +292,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
     agentic: true,
   },
   {
-    id: "anthropic/claude-opus-4.5",
+    id: "anthropic/claude-opus-4-5",
     name: "Claude Opus 4.5",
     inputPrice: 5.0,
     outputPrice: 25.0,
@@ -297,7 +302,7 @@ export const BLOCKRUN_MODELS: BlockRunModel[] = [
     agentic: true,
   },
   {
-    id: "anthropic/claude-opus-4.6",
+    id: "anthropic/claude-opus-4-6",
     name: "Claude Opus 4.6",
     inputPrice: 5.0,
     outputPrice: 25.0,
